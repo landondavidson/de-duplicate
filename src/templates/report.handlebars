@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta name="Description" content="De-duplication" />
+        <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+        <meta name="viewport" content="initial-scale=1, width=device-width" />
+        <title>De-duplication Report</title>
+        <script
+            src="https://code.jquery.com/jquery-3.1.1.min.js"
+            integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="crossorigin="anonymous"></script>
+        <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"
+            integrity="sha512-8bHTC73gkZ7rZ7vpqUQThUDhqcNFyYi2xgDgPDHc+GXVGHXq+xPjynxIopALmOPqzo9JZj0k6OqqewdGO3EsrQ=="crossorigin="anonymous"
+            />
+    </head>
+
+    <body style="height: 100%; margin: 0;">
+        <div style="display: flex; flex-flow: column; height: 100%;">
+            <h2 class="ui center aligned icon header">
+                <i class="circular clipboard outline icon"></i>
+                De-duplication Report
+            </h2>
+            <div class="ui three statistics">
+                <div class="statistic">
+                    <div class="value">
+                        {{duplicateCount}}
+                    </div>
+                    <div class="label">
+                        Duplicates
+                    </div>
+                </div>
+                <div class="statistic">
+                    <div class="value">
+                        {{duration}}
+                    </div>
+                    <div class="label">
+                        Duration (ms)
+                    </div>
+                </div>
+                <div class="statistic">
+                    <div class="value">
+                        {{recordCount}}
+                    </div>
+                    <div class="label">
+                        Records
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;">
+                <div class="ui styled fluid accordion" style="flex:
+                    1;margin:1em">
+                    <div class="title">
+                        <i class="dropdown icon"></i>
+                        Details
+                    </div>
+                    <div class="content">
+                        {{#each differences}}
+                        <table class="ui celled table">
+                            <thead>
+                                <tr>
+                                    <th>Field</th>
+                                    <th>Previous Value</th>
+                                    <th>New Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{#each this.rows}}
+                                <tr>
+                                    <td>{{this.field}}</td>
+                                    <td {{#if this.updated }}class="negative"
+                                        {{/if}}>{{this.previous}}</td>
+                                    <td {{#if this.updated}}class="positive"
+                                        {{/if}}>{{this.new}}</td>
+                                </tr>
+                                {{/each}}
+                            </tbody>
+                        </table>
+                        {{/each}}
+                    </div>
+                </div>
+            </div>
+            <div style="flex: 1 1 auto;"></div>
+            <div style="flex: 0 1 40px; padding: 1em;">
+                <a class="ui right floated primary button"
+                    href="{{outputFile}}">
+                    Results
+                </a>
+                <a class="ui right floated button" href="{{inputFile}}">
+                    Original File
+                </a>
+            </div>
+        </div>
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"
+            integrity="sha512-dqw6X88iGgZlTsONxZK9ePmJEFrmHwpuMrsUChjAw1mRUhUITE5QU9pkcSox+ynfLhL15Sv2al5A0LVyDCmtUw=="crossorigin="anonymous"></script>
+        <script>
+                $('.ui.accordion').accordion();
+            </script>
+    </body>
+</html>

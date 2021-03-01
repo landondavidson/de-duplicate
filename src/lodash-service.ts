@@ -2,16 +2,21 @@ import { chain, CollectionChain } from 'lodash';
 
 export const indexSymbol = Symbol('index');
 
-type RecordWithOptionIndex = Record<string, string | number | null> & {
+export type RecordWithOptionIndex = Record<string, string | number | null> & {
     [indexSymbol]?: number;
 };
+export interface IReport {
+    from: RecordWithOptionIndex;
+    to: RecordWithOptionIndex;
+}
 export const deDuplicateRecords = (
     records: Record<string, string | number | null>[],
     detectionKeys: string[],
     resolutionKey: string,
     takeLast: boolean
-) => {
+): { records: RecordWithOptionIndex[]; report: IReport[] } => {
     let setIndex = takeLast;
+    let report: IReport[] = [];
     let deduplicatedRecords: (RecordWithOptionIndex | undefined)[] = records;
     for (const detectionKey of detectionKeys) {
         let query: CollectionChain<RecordWithOptionIndex | undefined> = chain(deduplicatedRecords);
@@ -25,11 +30,29 @@ export const deDuplicateRecords = (
         if (groupedRecords['undefined']) {
             throw new Error(`Conflict detection key ${detectionKey} does not exist on all records`);
         }
-        deduplicatedRecords = Object.keys(groupedRecords).map((key) =>
-            maxBy(groupedRecords[key] as RecordWithOptionIndex[], resolutionKey, takeLast)
-        );
+        deduplicatedRecords = Object.keys(groupedRecords).map((key) => {
+            const to = maxBy(
+                groupedRecords[key] as RecordWithOptionIndex[],
+                resolutionKey,
+                takeLast
+            ) as RecordWithOptionIndex;
+            const reportForGroup = (groupedRecords[key] as RecordWithOptionIndex[])
+                .filter((from) => from !== to)
+                .map((from) => ({ from, to }));
+            const updatedReport = report.map((reportElement) => {
+                const needsAnUpdate = reportForGroup.find(
+                    (reportForGroupElement) => reportForGroupElement.from === reportElement.to
+                );
+                if (needsAnUpdate) {
+                    return { from: reportElement.from, to };
+                }
+                return reportElement;
+            });
+            report = [...updatedReport, ...reportForGroup];
+            return to;
+        });
     }
-    return deduplicatedRecords;
+    return { records: deduplicatedRecords as RecordWithOptionIndex[], report };
 };
 
 function maxBy(array: RecordWithOptionIndex[], key: string, takeLast: boolean) {
@@ -38,7 +61,7 @@ function maxBy(array: RecordWithOptionIndex[], key: string, takeLast: boolean) {
         return result;
     }
     let computed: string | number | null | undefined;
-    let computedIndex: number = -1;
+    let computedIndex = -1;
     for (const value of array) {
         const current = value[key];
         if (current === undefined) {

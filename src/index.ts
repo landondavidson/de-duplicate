@@ -2,15 +2,17 @@
 /* eslint-disable no-console */
 // eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference path="./types/inquirer-file-tree-selection-prompt/index.d.ts" />
+import { exec } from 'child_process';
 import { Command, OptionValues } from 'commander';
 import fs from 'fs';
+import handlebars from 'handlebars';
 import inquirer from 'inquirer';
 import inquirerFileTreeSelection from 'inquirer-file-tree-selection-prompt';
 import { head } from 'lodash';
 import path from 'path';
 
 import _package from '../package.json';
-import { deDuplicateRecords } from './lodash-service';
+import { deDuplicateRecords, IReport, RecordWithOptionIndex } from './lodash-service';
 
 interface IOptions extends OptionValues {
     arrayKey?: string;
@@ -21,6 +23,22 @@ interface IOptions extends OptionValues {
     resolutionKey?: string;
     silent?: boolean;
     takeLast?: boolean;
+}
+
+interface IReportViewModel {
+    differences: {
+        rows: {
+            field: string;
+            new: string | number | null;
+            previous: string | number | null;
+            updated: boolean;
+        }[];
+    }[];
+    duplicateCount: number;
+    duration: number;
+    inputFile: string;
+    outputFile: string;
+    recordCount: number;
 }
 
 const getNumberWithOrdinal = (integer: number) => {
@@ -66,7 +84,9 @@ const promptForDetectionKeys = async (
 ): Promise<IOptions> => {
     const finishedChoice = 'Done selecting properties';
     const keys =
-        answers.length === 0 ? Object.keys(input) : [finishedChoice, ...Object.keys(input)];
+        answers.length === 0
+            ? Object.keys(input)
+            : [finishedChoice, ...Object.keys(input).filter((key) => !answers.includes(key))];
     const ordinal = getNumberWithOrdinal(answers.length + 1);
     const { detectionKey } = await inquirer.prompt([
         {
@@ -86,7 +106,7 @@ const promptForResolutionKey = async (
     options: IOptions,
     input: Record<string, unknown>
 ): Promise<IOptions> => {
-    const keys = Object.keys(input);
+    const keys = Object.keys(input).filter((key) => !options.detectionKeys?.includes(key));
     const { resolutionKey } = await inquirer.prompt([
         {
             choices: keys,
@@ -107,6 +127,28 @@ const promptForTakeLast = async (options: IOptions): Promise<IOptions> => {
         },
     ]);
     return Object.assign({}, options, { takeLast });
+};
+const promptForShowReport = async (reportPath: string): Promise<void> => {
+    const { showReport } = await inquirer.prompt([
+        {
+            message: 'Would you like to see the report',
+            name: 'showReport',
+            type: 'confirm',
+        },
+    ]);
+    if (showReport) {
+        switch (process.platform) {
+            case 'darwin':
+                exec(`open ${reportPath}`);
+                break;
+            case 'win32':
+                exec(`start ${reportPath}`);
+                break;
+            default:
+                exec(`xdg-open ${reportPath}`);
+                break;
+        }
+    }
 };
 const promptForInputFile = async (options: IOptions): Promise<IOptions> => {
     const { in: inAnswer } = await inquirer.prompt([
@@ -171,6 +213,41 @@ const promptUserForMissingOptions = async (options: IOptions): Promise<IOptions>
     }
     return promptOptions;
 };
+const buildReport = (
+    options: IOptions,
+    records: RecordWithOptionIndex[],
+    report: IReport[],
+    duration: number
+): string => {
+    const template = fs.readFileSync(
+        path.join(__dirname, 'templates', 'report.handlebars'),
+        'utf-8'
+    );
+    const compiledTemplate = handlebars.compile(template);
+    const differences = report.map((report) => {
+        const keys = Object.keys(report.from);
+        return {
+            rows: keys.map((key) => ({
+                field: key,
+                new: report.to[key],
+                previous: report.from[key],
+                updated: report.to[key] !== report.from[key],
+            })),
+        };
+    });
+    const viewModel: IReportViewModel = {
+        differences,
+        duplicateCount: report.length,
+        duration,
+        inputFile: options.in as string,
+        outputFile: options.out as string,
+        recordCount: records.length,
+    };
+    const reportHtml = compiledTemplate(viewModel);
+    const reportPath = path.join(path.dirname(options.out as string), 'report.html');
+    fs.writeFileSync(reportPath, reportHtml);
+    return reportPath;
+};
 inquirer.registerPrompt('file-tree-selection', inquirerFileTreeSelection);
 const program = new Command();
 
@@ -209,6 +286,7 @@ Promise.resolve()
     })
     .then((options: IOptions) => {
         if (options.in) {
+            const start = Date.now();
             if (!fs.existsSync(options.in) && options.silent) {
                 console.error(`file "${options.in}" does not exist`);
                 process.exit(1);
@@ -223,7 +301,7 @@ Promise.resolve()
                 process.exit(1);
             }
             if (options.detectionKeys && options.resolutionKey) {
-                const outputRecords = deDuplicateRecords(
+                const { records: outputRecords, report } = deDuplicateRecords(
                     records,
                     options.detectionKeys,
                     options.resolutionKey,
@@ -234,6 +312,11 @@ Promise.resolve()
                     : outputRecords;
                 if (options.out) {
                     fs.writeFileSync(options.out, JSON.stringify(output));
+                }
+                const duration = Date.now() - start;
+                const reportPath = buildReport(options, outputRecords, report, duration);
+                if (!options.silent) {
+                    promptForShowReport(reportPath);
                 }
             }
         }
