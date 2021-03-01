@@ -7,8 +7,9 @@ de-duplicate is an implementation of a code challenge to find and remove duplica
 To install:
 
 ```
-$ yarn build
-$ node dist/src/index.js
+$ yarn                      #install dependencies
+$ yarn build                #transcompile typescript
+$ yarn app                  #run cli
 ```
 
 ## Command line options
