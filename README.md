@@ -91,3 +91,8 @@ Along with the result json that is created with the removed duplicates. A report
 ```
 
 ![Report](https://github.com/landondavidson/de-duplicate/blob/main/report.png?raw=true)
+
+## To Do
+
+-   Implement debug mode with winston
+-   Deploy package to npm
