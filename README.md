@@ -5,8 +5,11 @@ de-duplicate is an implementation of a code challenge to find and remove duplica
 ## Getting Started
 
 To install:
+
+```
 $ yarn build
 $ node dist/src/index.js
+```
 
 ## Command line options
 
