@@ -3,20 +3,7 @@
     "configurations": [
         {
             "name": "Launch Program",
-            "args": [
-                "--inspect=0.0.0.0:5858",
-                "-r",
-                "ts-node/register",
-                "src/index.ts",
-                "--in",
-                "${workspaceFolder}/src/__tests__/test-data-array.json",
-                "--out",
-                "${workspaceFolder}/result.json",
-                "--detection-keys",
-                "_id",
-                "--resolution-key",
-                "entryDate"
-            ],
+            "args": ["--inspect=0.0.0.0:5858", "-r", "ts-node/register", "src/index.ts"],
             "request": "launch",
             "skipFiles": ["<node_internals>/**"],
             "type": "pwa-node"

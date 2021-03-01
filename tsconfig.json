@@ -15,7 +15,7 @@
         "strict": true,
         "target": "es6",
         "types": ["node", "jest"],
-        "typeRoots": ["./types", "./node_modules/@types"]
+        "typeRoots": ["./src/types", "./node_modules/@types"]
     },
     "include": ["./**/*.ts*", "./**/*.json"],
     "exclude": ["node_modules"]

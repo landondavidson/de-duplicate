@@ -60,6 +60,8 @@
         "eslint-plugin-typescript-sort-keys": "^1.5.0",
         "eslint-plugin-unicorn": "^28.0.2",
         "inquirer": "^8.0.0",
+        "inquirer-file-tree-selection-prompt": "^1.0.7",
+        "inquirer-fuzzy-path": "^2.3.0",
         "lodash": "^4.17.21"
     }
 }
